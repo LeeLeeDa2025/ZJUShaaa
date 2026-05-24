@@ -66,6 +66,8 @@ const allSections = [
 
 function showOnly(section) {
   allSections.forEach((el) => { if (el) el.hidden = el !== section; });
+  // 离开剧情幕 → 停止当前朗读，避免下一节继续把上一段念完
+  if (section !== els.storyScene) stopSpeaking();
   if (section) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     const phone = document.querySelector('.phone-screen');
@@ -73,6 +75,71 @@ function showOnly(section) {
       phone.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
+}
+
+/* ========================================================
+   语音朗读 · Web Speech API
+   ======================================================== */
+const TTS_AVAILABLE = typeof window !== 'undefined' &&
+  typeof window.speechSynthesis !== 'undefined';
+const TTS_MUTE_KEY = 'kacha.ttsMuted';
+let ttsMuted = localStorage.getItem(TTS_MUTE_KEY) === '1';
+let _ttsVoice = null;
+
+function pickChineseVoice() {
+  if (!TTS_AVAILABLE) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) return null;
+  // 优先：女声 / Xiaoxiao / Huihui / 任何 zh- 开头
+  const byLang = voices.filter((v) => /^zh(-|_)/i.test(v.lang) || /Chinese/i.test(v.name));
+  if (byLang.length === 0) return null;
+  const preferred =
+    byLang.find((v) => /xiaoxiao|xiaoyi/i.test(v.name)) ||
+    byLang.find((v) => /huihui/i.test(v.name)) ||
+    byLang.find((v) => /female/i.test(v.name)) ||
+    byLang[0];
+  return preferred;
+}
+
+function speakText(text) {
+  if (!TTS_AVAILABLE || ttsMuted || !text) return;
+  try {
+    window.speechSynthesis.cancel();          // 先停掉上一句
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-CN';
+    u.rate = 1.02;
+    u.pitch = 1.0;
+    if (!_ttsVoice) _ttsVoice = pickChineseVoice();
+    if (_ttsVoice) u.voice = _ttsVoice;
+    window.speechSynthesis.speak(u);
+  } catch (e) {
+    console.warn('[tts] speak failed:', e);
+  }
+}
+
+function stopSpeaking() {
+  if (!TTS_AVAILABLE) return;
+  try { window.speechSynthesis.cancel(); } catch (e) {}
+}
+
+function applyTtsMuteUi() {
+  const btn = document.getElementById('ttsToggle');
+  if (!btn) return;
+  btn.classList.toggle('muted', ttsMuted);
+  btn.setAttribute('aria-pressed', ttsMuted ? 'true' : 'false');
+  btn.title = ttsMuted ? '已静音 · 点击开启朗读' : '朗读中 · 点击静音';
+}
+
+function toggleTtsMute() {
+  ttsMuted = !ttsMuted;
+  localStorage.setItem(TTS_MUTE_KEY, ttsMuted ? '1' : '0');
+  applyTtsMuteUi();
+  if (ttsMuted) stopSpeaking();
+}
+
+// 浏览器需要 voices 异步就绪
+if (TTS_AVAILABLE && typeof window.speechSynthesis.onvoiceschanged !== 'undefined') {
+  window.speechSynthesis.onvoiceschanged = () => { _ttsVoice = pickChineseVoice(); };
 }
 
 const THEME_CN = {
@@ -419,6 +486,15 @@ els.enterDreamBtn.addEventListener('click', () => {
   showOnly(els.storySetup);
 });
 
+// 朗读静音切换
+{
+  const btn = document.getElementById('ttsToggle');
+  if (btn) {
+    btn.addEventListener('click', toggleTtsMute);
+    applyTtsMuteUi();
+  }
+}
+
 els.backToPosterBtn.addEventListener('click', () => {
   showOnly(els.resultSection);
 });
@@ -656,6 +732,8 @@ function renderScene({ sceneIndex, totalScenes, isFinale, scene }) {
   }
 
   els.sceneNarrative.textContent = scene.narrative;
+  // 自动朗读本幕叙述（用户已 muted 时 speakText 自己会跳过）
+  speakText(scene.narrative);
 
   // 进度条
   const pct = Math.min(100, Math.round((current / total) * 100));
@@ -682,6 +760,8 @@ function renderScene({ sceneIndex, totalScenes, isFinale, scene }) {
 }
 
 async function pickChoice(index, btn) {
+  // 切幕前先停掉前一句朗读
+  stopSpeaking();
   // 锁定所有选项，高亮选中
   const buttons = els.choices.querySelectorAll('.choice');
   buttons.forEach((b) => b.classList.add('disabled'));
@@ -790,10 +870,65 @@ function renderFinale(allScenes, aWins) {
   showOnly(els.storyFinale);
 }
 
+function _isIOS() {
+  const ua = navigator.userAgent || '';
+  if (/iPad|iPhone|iPod/.test(ua)) return true;
+  // iPadOS 13+ 把 UA 报成桌面 Mac，需要靠触屏点数兜底
+  return navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1;
+}
+function _isMobile() {
+  return /Mobi|Android|iPad|iPhone|iPod/i.test(navigator.userAgent || '') || _isIOS();
+}
+function _canvasToBlob(canvas, type) {
+  return new Promise((resolve, reject) => {
+    if (canvas.toBlob) {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('toBlob 返回空结果'));
+      }, type);
+      return;
+    }
+    try {
+      const dataUrl = canvas.toDataURL(type);
+      const [meta, b64] = dataUrl.split(',');
+      const mime = (meta.match(/data:(.*?);/) || [])[1] || type;
+      const bin = atob(b64);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      resolve(new Blob([arr], { type: mime }));
+    } catch (e) { reject(e); }
+  });
+}
+function _openComicSaveOverlay(blobUrl) {
+  const old = document.getElementById('comicSaveOverlay');
+  if (old) old.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'comicSaveOverlay';
+  overlay.className = 'comic-save-overlay';
+  overlay.innerHTML = `
+    <div class="comic-save-card" role="dialog" aria-modal="true">
+      <div class="comic-save-hint">长　按　图　片　·　保　存　到　相　册</div>
+      <img class="comic-save-img" alt="咔嚓连环画" />
+      <button type="button" class="comic-save-close">
+        <span class="btn-cn">合　上　画　卷</span>
+      </button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelector('.comic-save-img').src = blobUrl;
+  const close = () => {
+    overlay.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  };
+  overlay.querySelector('.comic-save-close').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+}
+
 els.downloadComicBtn.addEventListener('click', async () => {
   els.downloadComicBtn.disabled = true;
   const original = els.downloadComicBtn.innerHTML;
   els.downloadComicBtn.innerHTML = '<span class="btn-cn">合　卷　中　…</span>';
+  let blobUrl = null;
   try {
     // 1. 等连环画里所有 <img> 解码完，html2canvas 才不会截到半张图
     const imgs = Array.from(els.comicStrip.querySelectorAll('img'));
@@ -807,29 +942,44 @@ els.downloadComicBtn.addEventListener('click', async () => {
       return new Promise((res) => { img.onload = res; img.onerror = res; });
     }));
 
-    // 2. 截图
+    // 2. 截图。移动端把 scale 压一档，长卷在 scale:2 下容易把画布撑到内存上限，
+    //    iOS Safari 直接 toBlob 返回 null / toDataURL 抛错。
+    const mobile = _isMobile();
+    const scale = mobile ? Math.min(1.5, window.devicePixelRatio || 1) : 2;
     const canvas = await html2canvas(els.comicStrip, {
       backgroundColor: '#ecddb8',
-      scale: 2,
+      scale,
       useCORS: true,
       allowTaint: true,
       logging: false,
       imageTimeout: 0,
     });
 
+    // 3. canvas → Blob URL。比 data URL 省一大圈内存，
+    //    几 MB 的 data URL 塞进 <a href> 在 iOS / 部分 Android WebView 上会直接失败。
+    const blob = await _canvasToBlob(canvas, 'image/png');
+    blobUrl = URL.createObjectURL(blob);
     const fileName = `咔嚓连环画_${state.name || '无名'}_${Date.now()}.png`;
+    const supportsDownloadAttr = 'download' in document.createElement('a');
 
-    // 3. 直接触发浏览器下载（不再走 Web Share，省得移动端弹分享面板而不是下载）
-    const dataUrl = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = fileName;
-    link.rel = 'noopener';
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => link.remove(), 0);
+    // iOS Safari 不响应 <a download>，只会跳页；改成弹层让用户长按保存到相册
+    if (_isIOS() || !supportsDownloadAttr) {
+      _openComicSaveOverlay(blobUrl);
+      blobUrl = null; // 交给 overlay 自己释放
+    } else {
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => { URL.revokeObjectURL(blobUrl); }, 60_000);
+      blobUrl = null;
+    }
   } catch (e) {
     console.error('[download comic] failed:', e);
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
     alert('保存失败：' + ((e && e.message) || e));
   } finally {
     els.downloadComicBtn.disabled = false;

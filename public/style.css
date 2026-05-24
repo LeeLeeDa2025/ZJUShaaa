@@ -1323,6 +1323,43 @@ button.enter-dream .dream-icon {
   color: var(--sumi-faded);
 }
 
+/* 朗读静音切换 — 放在 scene-meta 右侧 */
+.tts-toggle {
+  margin: 0 0 0 auto;            /* 推到行尾 */
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  background: var(--washi-light);
+  color: var(--shu);
+  border: 1.5px solid var(--sumi);
+  border-radius: 0;
+  box-shadow: 2px 2px 0 var(--sumi-faded);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  letter-spacing: 0;
+  flex: 0 0 auto;
+}
+.tts-toggle:hover:not(:disabled) {
+  background: #fff8e7;
+  box-shadow: 3px 3px 0 var(--shu);
+  transform: translate(-1px, -1px);
+}
+.tts-toggle svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+.tts-toggle .tts-icon-off { display: none; }
+.tts-toggle.muted {
+  color: var(--sumi-faded);
+  background: var(--washi);
+}
+.tts-toggle.muted .tts-icon-on  { display: none; }
+.tts-toggle.muted .tts-icon-off { display: block; }
+
 .scene-panel {
   position: relative;
   background: var(--washi-light);
@@ -1747,6 +1784,65 @@ button.enter-dream .dream-icon {
 
 @media (max-width: 520px) {
   .wake-overlay .wake-text { font-size: 56px; gap: 18px; }
+}
+
+/* 保存连环画弹层：iOS Safari 不响应 <a download>，让用户长按图片存到相册 */
+.comic-save-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(8, 5, 3, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 14px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.comic-save-card {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.comic-save-hint {
+  color: var(--washi-light);
+  font-family: var(--f-mincho);
+  font-size: 14px;
+  letter-spacing: 4px;
+  text-align: center;
+  text-shadow: 0 0 8px rgba(197, 48, 42, 0.45);
+}
+.comic-save-img {
+  display: block;
+  max-width: 100%;
+  max-height: 76vh;
+  width: auto;
+  height: auto;
+  background: #ecddb8;
+  border: 2px solid var(--washi-light);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+  /* 关键：允许长按图片弹出"存储图像"菜单 */
+  -webkit-touch-callout: default;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.comic-save-close {
+  background: transparent;
+  color: var(--washi-light);
+  border: 1px solid var(--washi-light);
+  padding: 8px 22px;
+  font-family: var(--f-mincho);
+  letter-spacing: 4px;
+  cursor: pointer;
+}
+.comic-save-close:hover { background: rgba(243, 231, 200, 0.08); }
+@media (max-width: 520px) {
+  .comic-save-hint { font-size: 12px; letter-spacing: 3px; }
+  .comic-save-img { max-height: 70vh; }
 }
 
 /* =========================================================
