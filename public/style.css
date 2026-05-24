@@ -332,6 +332,24 @@ body::after {
   filter: sepia(0.05) contrast(1.02);
 }
 
+/* 默认示例图角标：只在用户尚未替换时显示 */
+.upload-example-tag {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 4px 10px;
+  background: rgba(26, 20, 16, 0.62);
+  color: var(--washi-light, #ecddb8);
+  font-family: var(--f-mincho);
+  font-size: 11px;
+  letter-spacing: 3px;
+  border: 1px solid rgba(236, 221, 184, 0.35);
+  border-radius: 2px;
+  pointer-events: none;
+  user-select: none;
+}
+.upload-example-tag[hidden] { display: none; }
+
 /* =========================================================
    字段输入
    ========================================================= */
@@ -2038,6 +2056,53 @@ button.enter-dream .dream-icon {
     width: 440px;
     height: min(920px, calc(100vh - 48px));
   }
+}
+
+/* 温暖之域 · AI 留言（仅在 warm-mode 下显示） */
+.warm-blessing {
+  position: relative;
+  z-index: 1;
+  margin: 18px 12px 4px;
+  padding: 14px 18px 16px 22px;
+  padding-right: 86px;
+  font-family: var(--f-mincho);
+  border-top: 1px dashed var(--sumi-faded);
+}
+.poster:not(.warm-mode) .warm-blessing { display: none !important; }
+.poster.warm-mode .warm-blessing {
+  border-top-color: var(--warm-bark);
+  color: var(--warm-bark);
+}
+.warm-blessing-label {
+  font-family: var(--f-display);
+  font-size: 12px;
+  letter-spacing: 6px;
+  color: var(--warm-honey-deep);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.warm-blessing-text {
+  font-size: 14.5px;
+  line-height: 1.85;
+  letter-spacing: 0.5px;
+  color: var(--warm-bark);
+  position: relative;
+}
+.warm-blessing-text::before {
+  content: "「";
+  color: var(--warm-honey-deep);
+  font-family: var(--f-display);
+  font-size: 22px;
+  margin-right: 2px;
+  vertical-align: -2px;
+}
+.warm-blessing-text::after {
+  content: "」";
+  color: var(--warm-honey-deep);
+  font-family: var(--f-display);
+  font-size: 22px;
+  margin-left: 2px;
+  vertical-align: -2px;
 }
 
 /* =========================================================

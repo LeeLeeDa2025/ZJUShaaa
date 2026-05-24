@@ -6,6 +6,7 @@ const els = {
   formSection: $('formSection'),
   uploadArea: $('uploadArea'),
   uploadPlaceholder: $('uploadPlaceholder'),
+  uploadExampleTag: $('uploadExampleTag'),
   image: $('image'),
   preview: $('preview'),
   name: $('name'),
@@ -131,7 +132,11 @@ const state = {
   sessionId: null,
   scenes: [], // 已确定的幕（带 chosenIndex）
   posterImageUrl: '',
+  usingDefaultImage: true,  // 未上传时使用 /example-photo.jpg（命中演示缓存）
 };
+
+const DEFAULT_EXAMPLE_IMAGE_URL = '/example-photo.jpg';
+const DEFAULT_EXAMPLE_FILENAME = '示例图片.small.jpg';
 
 const POSTER_STYLE_PRESET = {
   prank: {
@@ -194,6 +199,8 @@ els.image.addEventListener('change', (e) => {
     els.preview.src = reader.result;
     els.preview.hidden = false;
     els.uploadPlaceholder.style.display = 'none';
+    if (els.uploadExampleTag) els.uploadExampleTag.hidden = true;
+    state.usingDefaultImage = false;
   };
   reader.readAsDataURL(file);
 });
@@ -219,12 +226,24 @@ els.uploadArea.addEventListener('drop', (e) => {
 
 els.form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const file = els.image.files[0];
+  let file = els.image.files[0];
   const name = els.name.value.trim();
   const nickname = els.nickname.value.trim();
 
-  if (!file) { alert('请上传一张照片'); return; }
   if (!name) { alert('请输入姓名'); return; }
+
+  // 用户没自选文件 → 用默认示例图（命中演示缓存）
+  if (!file) {
+    try {
+      const resp = await fetch(DEFAULT_EXAMPLE_IMAGE_URL);
+      if (!resp.ok) throw new Error('默认示例图加载失败');
+      const blob = await resp.blob();
+      file = new File([blob], DEFAULT_EXAMPLE_FILENAME, { type: blob.type || 'image/jpeg' });
+    } catch (err) {
+      alert('请上传一张照片');
+      return;
+    }
+  }
 
   const fd = new FormData();
   fd.append('image', file);
@@ -300,13 +319,27 @@ function renderPoster({ image, poster, style }) {
   }
   els.posterStatus.textContent = poster.status;
   els.posterSuggestion.textContent = poster.suggestion;
+
+  // 暖系：AI 看图说的一句话（只在 warm 模式 + 有 blessing 时显示）
+  const blessingEl = els.poster.querySelector('.warm-blessing');
+  if (blessingEl) {
+    if (mode === 'warm' && poster.blessing) {
+      blessingEl.querySelector('.warm-blessing-text').textContent = poster.blessing;
+      blessingEl.hidden = false;
+    } else {
+      blessingEl.hidden = true;
+    }
+  }
 }
 
 function reset() {
   els.form.reset();
-  els.preview.removeAttribute('src');
-  els.preview.hidden = true;
-  els.uploadPlaceholder.style.display = 'flex';
+  // 恢复默认示例图（保持上传区不空白）
+  els.preview.src = DEFAULT_EXAMPLE_IMAGE_URL;
+  els.preview.hidden = false;
+  els.uploadPlaceholder.style.display = 'none';
+  if (els.uploadExampleTag) els.uploadExampleTag.hidden = false;
+  state.usingDefaultImage = true;
   els.poster.classList.remove('stamped');
   state.hash = null;
   state.sessionId = null;

@@ -92,8 +92,8 @@
         </div>
 
         <label class="upload" id="uploadArea">
-          <input type="file" id="image" name="image" accept="image/*" required hidden />
-          <div class="upload-placeholder" id="uploadPlaceholder">
+          <input type="file" id="image" name="image" accept="image/*" hidden />
+          <div class="upload-placeholder" id="uploadPlaceholder" hidden>
             <svg class="upload-icon" viewBox="0 0 64 64" aria-hidden="true">
               <rect x="6" y="14" width="52" height="40" rx="3" fill="none" stroke="currentColor" stroke-width="2"/>
               <circle cx="32" cy="34" r="11" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -103,7 +103,8 @@
             <div class="upload-main">點此 / 拖入肖像</div>
             <div class="upload-hint">奉行所推荐正面像 · JPG / PNG</div>
           </div>
-          <img id="preview" alt="" hidden />
+          <img id="preview" src="/example-photo.jpg" alt="示例照片" />
+          <div class="upload-example-tag" id="uploadExampleTag">示　例　·　點此換成你自己的</div>
         </label>
 
         <div class="field">
@@ -204,6 +205,12 @@
             <circle cx="30" cy="30" r="26" fill="none" stroke="currentColor" stroke-width="3"/>
             <text x="50%" y="58%" dominant-baseline="middle" text-anchor="middle" font-family="Yuji Syuku, serif" font-size="22" fill="currentColor">緝</text>
           </svg>
+        </div>
+
+        <!-- 温暖之域专属：AI 看图的一句留言 -->
+        <div class="warm-blessing" hidden>
+          <div class="warm-blessing-label">AI 留 言</div>
+          <div class="warm-blessing-text"></div>
         </div>
 
         <div class="poster-footer">

@@ -31,6 +31,12 @@ const upload = multer({
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json({ limit: '20mb' }));
 
+// 演示默认照片：原图放在仓库根目录（中文文件名不便走 URL），统一以 /example-photo.jpg 暴露。
+// 哈希需与 scripts/prewarm-demo.js 中的 COMMON.hash 保持一致，否则示例路径不命中缓存。
+app.get('/example-photo.jpg', (req, res) => {
+  res.sendFile(path.join(__dirname, '示例图片.small.jpg'));
+});
+
 function rollBounty() {
   const levels = ['F', 'E', 'D', 'C', 'B', 'A', 'S'];
   const idx = Math.floor(Math.random() * levels.length);
@@ -296,6 +302,89 @@ const VALID_POSTER_STYLES = new Set(['prank', 'warm']);
 const VALID_GENDERS = new Set(['m', 'f', 'x']);
 const ENTER_PARALLEL_SUGGESTION = '进入照片中的平行世界';
 
+// 视觉理解：让 LLM 真的「看」一眼上传的照片，结果增量写进 meta.vision
+// 仅写新字段，不修改已有的 prank.dangerLevel / prank.bounty / warm.keyword 等，
+// 现场演示的 v5 缓存值保持原样。
+async function analyzePhoto(hash) {
+  const existing = readPosterMeta(hash);
+  if (existing && existing.vision) return existing.vision;
+
+  const orig = findOriginalByHash(hash);
+  if (!orig) return null;
+
+  const buf = fs.readFileSync(orig.path);
+  const ext = orig.ext === 'jpg' ? 'jpeg' : orig.ext;
+  const dataUrl = `data:image/${ext};base64,${buf.toString('base64')}`;
+
+  const promptText = `你是"咔嚓劇場"画师。请看一眼这张朋友的日常抓拍，把你的视觉观察转化成一段 JSON，给后续的整蛊通缉令、暖光纪事卡和入画剧情做素材。
+
+严格按下面的 schema 输出 JSON，所有字段都必填，不要任何 JSON 以外的文字：
+{
+  "scene":           "<English short phrase, 这张照片的场景，例如 'a busy cafe at golden hour'>",
+  "sceneZh":         "<中文 ≤ 12 字，场景概括，例如 '午后咖啡馆' / '深夜的工位'>",
+  "expression":      "<English, 照片里人物的表情/状态>",
+  "vibe":            "<English 单词，氛围基调：calm / playful / sleepy / fierce / focused / weary / cheerful 等>",
+  "objectsZh":       ["<最多 4 个中文短词，照片里出现的关键物件>"],
+  "oneSentenceObs":  "<≤ 30 字温柔中文，看着照片像在朋友圈下面留言，要具体到画面里有的元素>",
+  "prankCrime":      "<≤ 20 字中文罪名，结合场景，例如 '在咖啡馆潜入照片副本' / '在加班期间潜入照片副本'>",
+  "prankStatus":     "<≤ 20 字中文，'假装XXX，实则YYY' 结构，例如 '假装在改 PPT，实则掉线一万米'>",
+  "dangerHint":      "<F / E / D / C / B / A / S 之一，看小可爱给 F-E，看起来认真/凶/狠给 A-S>",
+  "storyContext":    "<English single sentence, 用于后续漫画的场景背景参考>"
+}`;
+
+  try {
+    const resp = await withRetry('vision-analyze', async () => {
+      return await axios.post(
+        `${API_BASE}/v1/chat/completions`,
+        {
+          model: TEXT_MODEL,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: promptText },
+              { type: 'image_url', image_url: { url: dataUrl } },
+            ],
+          }],
+          response_format: { type: 'json_object' },
+          temperature: 0.6,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 60000,
+        }
+      );
+    }, { attempts: 3, baseDelayMs: 5000 });
+
+    const content = resp.data && resp.data.choices && resp.data.choices[0] &&
+      resp.data.choices[0].message && resp.data.choices[0].message.content;
+    if (!content) throw new Error('vision returned empty content');
+
+    let vision;
+    try {
+      vision = JSON.parse(content);
+    } catch (e) {
+      const m = content.match(/\{[\s\S]*\}/);
+      if (m) vision = JSON.parse(m[0]);
+      else throw new Error('vision returned non-JSON: ' + content.slice(0, 200));
+    }
+
+    // 增量写回 — 不覆盖任何其他字段
+    const meta = readPosterMeta(hash) || { createdAt: Date.now() };
+    meta.vision = vision;
+    meta.updatedAt = Date.now();
+    writePosterMeta(hash, meta);
+
+    console.log(`[vision] analyzed ${hash.slice(0, 10)} → ${vision.sceneZh || vision.scene}`);
+    return vision;
+  } catch (err) {
+    console.warn('[vision] analyze failed (fail-open):', err.message);
+    return null;
+  }
+}
+
 app.post('/api/generate-poster', upload.single('image'), async (req, res) => {
   const filePath = req.file && req.file.path;
   try {
@@ -316,6 +405,14 @@ app.post('/api/generate-poster', upload.single('image'), async (req, res) => {
     // 保留原图，供第二部分剧情图复用
     saveOriginalIfNeeded(filePath, hash, mime);
 
+    // 视觉理解：看一眼照片（结果在 meta.vision 中永久缓存，二次调用直接读盘）
+    let vision = null;
+    try {
+      vision = await analyzePhoto(hash);
+    } catch (e) {
+      console.warn('[vision] non-fatal:', e.message);
+    }
+
     // 同一张照片 → 复用之前摇出的数值；不同风格各自分桶
     let meta = readPosterMeta(hash) || { createdAt: Date.now() };
     meta.gender = gender;          // 性别按最近一次提交覆盖
@@ -333,16 +430,23 @@ app.post('/api/generate-poster', upload.single('image'), async (req, res) => {
       if (!meta.prank) {
         meta.prank = rollBounty();
       }
+      // 视觉增量：仅在 meta.prank 还没有这两个字段时填，已有值绝不覆盖
+      if (!meta.prank.crime && vision && vision.prankCrime) {
+        meta.prank.crime = vision.prankCrime;
+      }
+      if (!meta.prank.status && vision && vision.prankStatus) {
+        meta.prank.status = vision.prankStatus;
+      }
       cached = prankImg.cachedImage;
       writePosterMeta(hash, meta);
 
       posterBody = {
         name,
         nickname: nickname || null,
-        crime: '在工作时间潜入照片副本',
+        crime: meta.prank.crime || '在工作时间潜入照片副本',
         dangerLevel: meta.prank.dangerLevel,
         bounty: meta.prank.bounty,
-        status: '假装掉线，实则灵魂出窍',
+        status: meta.prank.status || '假装掉线，实则灵魂出窍',
         suggestion: ENTER_PARALLEL_SUGGESTION,
       };
     } else {
@@ -356,6 +460,10 @@ app.post('/api/generate-poster', upload.single('image'), async (req, res) => {
       } else {
         cached = warmImg.cachedImage;
       }
+      // 视觉增量：暖卡的"AI 留言"。已有值不覆盖。
+      if (!meta.warm.blessing && vision && vision.oneSentenceObs) {
+        meta.warm.blessing = vision.oneSentenceObs;
+      }
       writePosterMeta(hash, meta);
 
       posterBody = {
@@ -366,6 +474,7 @@ app.post('/api/generate-poster', upload.single('image'), async (req, res) => {
         bounty: meta.warm.mood,             // 心情值
         status: meta.warm.feeling,          // 当下感受
         suggestion: ENTER_PARALLEL_SUGGESTION,
+        blessing: meta.warm.blessing || null, // 新字段：AI 看图说出的一句话
       };
     }
 
@@ -822,6 +931,17 @@ function buildStoryMessages(session, { sceneIndex, isFinale }) {
         : `开场第一幕需要一个明确的"入画引子"：交代你刚从现实坠入这张照片的平行世界，迅速点出 ${aLabel} 在这个世界里的身份/位置（例如：这是宫斗剧的话他/她是某位皇子/某位侍卫；穿越的话他/她已经成了某个NPC；探案的话他/她是嫌犯/同侦探等等），让观众一眼明白现在身处什么故事里。`)
     : '继续推进剧情，不要再重复入画的设定，也不要再提相机/拍照。';
 
+  // 视觉理解结果：只在开场第一幕注入，让"入画引子"引用照片里真实出现的元素，
+  // 给玩家"AI 真的看见了"的惊喜。后端 buildStoryMessages 只在 cache MISS 时被调用，
+  // 所以这段对已经缓存的演示路径零影响。
+  const visionLine = (sceneIndex === 0 && session.vision)
+    ? `\n\n照片的真实视觉线索（开场请自然引用至少一处，不要硬塞）：\n` +
+      `  · 场景：${session.vision.sceneZh || session.vision.scene || '（未识别）'}\n` +
+      `  · 氛围 / 表情：${session.vision.vibe || ''} · ${session.vision.expression || ''}\n` +
+      `  · 画面里的关键物件：${(session.vision.objectsZh || []).slice(0, 4).join('、') || '（无）'}\n` +
+      `请把这些真实线索织进入画引子里的环境或 ${aLabel} 的形象，让玩家感到"AI 真的看见了这张照片"。`
+    : '';
+
   const goodwillLine = isWarm
     ? `调侃 ${aLabel} 时要带十足的善意，可以互相揶揄但绝不贬低，最终目标是让两个人的友谊更近一步。`
     : `调侃 ${aLabel} 时要带善意，最终目标是增进现实里两人的友谊。`;
@@ -844,7 +964,7 @@ function buildStoryMessages(session, { sceneIndex, isFinale }) {
 
 ${worldLine}
 
-${openLine}
+${openLine}${visionLine}
 
 硬性要求：
 - 每幕 narrative 用**第二人称中文**（"你抬眼…"、"你冷笑一声…"），2-4 句话，画面感强、${narrativeMoodLine}。叙述里不要再出现"我"。
@@ -901,6 +1021,9 @@ app.post('/api/story/start', async (req, res) => {
       posterStyle: ps,
       theme: themeMap[theme] ? theme : defaultThemeFor(ps),
       style: styleMap[style] ? style : defaultStyleFor(ps),
+      // 视觉理解结果（如果 Part 1 阶段已经分析过，从 meta.json 拿）
+      // buildStoryMessages 在 sceneIndex===0 + cache MISS 时引用，缓存路径不受影响
+      vision: (readPosterMeta(hash) || {}).vision || null,
       scenes: [],
       totalScenes: 3,           // 3 互动幕 + 1 终幕
       aWins: ps === 'warm' ? false : (Math.random() < 0.10),  // 温暖之域不用 aWins
