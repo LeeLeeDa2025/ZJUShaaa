@@ -536,9 +536,12 @@ function nameKey(name, nickname) {
 function storyCacheKey(hash, theme, style, choicePath, name, nickname, gender, posterStyle) {
   const p = (choicePath && choicePath.length > 0) ? choicePath.join('-') : 'start';
   const n = nameKey(name, nickname);
-  const g = (gender === 'm' || gender === 'f') ? gender : 'x';
+  // 注意：gender 参数保留是为了向后兼容调用方，但 **不进 key**。
+  // 玩家"我"的性别只影响 generateSceneImage 的 prompt（画面里 player 的身形），
+  // 不影响缓存桶分布，从而保证不同性别选择都能命中同一份预热缓存。
+  void gender;
   const ps = posterStyle === 'warm' ? 'warm' : 'prank';
-  return `${STORY_CACHE_VERSION}__${hash}__${n}__${g}__${ps}__${theme}__${style}__${p}`;
+  return `${STORY_CACHE_VERSION}__${hash}__${n}__${ps}__${theme}__${style}__${p}`;
 }
 
 function readStoryCache(key) {
