@@ -1,0 +1,18 @@
+{
+  "name": "kacha-theater",
+  "version": "0.1.0",
+  "private": true,
+  "description": "咔嚓剧场 - AI 通缉令生成",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node --test ./test/*.test.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "express": "^4.21.1",
+    "form-data": "^4.0.1",
+    "multer": "^1.4.5-lts.1"
+  }
+}

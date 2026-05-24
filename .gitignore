@@ -1,0 +1,10 @@
+node_modules/
+uploads/
+cache/
+.env
+*.log
+.DS_Store
+
+# 本地敏感文件 / IDE 状态
+API.txt
+.claude/

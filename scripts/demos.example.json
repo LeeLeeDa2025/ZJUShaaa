@@ -1,0 +1,17 @@
+[
+  {
+    "_comment": "把生成通缉令时服务器日志里那行 [cache] HIT/MISS 后的 64 位完整 hash 抄到这里。",
+    "hash": "在此填入 64 位 sha256",
+    "name": "张三",
+    "nickname": "摸鱼大王",
+    "theme": "shuangwen",
+    "style": "lianyu"
+  },
+  {
+    "hash": "另一个示例的 64 位 sha256",
+    "name": "李四",
+    "nickname": "",
+    "theme": "gongdou",
+    "style": "xianni"
+  }
+]

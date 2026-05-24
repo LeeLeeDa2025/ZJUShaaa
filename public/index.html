@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>咔嚓劇場 · 人相書</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;700;800&family=Yuji+Mai&family=Yuji+Syuku&family=ZCOOL+XiaoWei&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- 背景装饰：水墨晕染 + 远景波纹 -->
+  <div class="paper-bg" aria-hidden="true">
+    <div class="ink-blob blob-1"></div>
+    <div class="ink-blob blob-2"></div>
+    <svg class="wave-deco" viewBox="0 0 200 200" aria-hidden="true">
+      <g fill="none" stroke="currentColor" stroke-width="1.2">
+        <path d="M10,100 Q40,60 70,100 T130,100 T190,100" />
+        <path d="M10,120 Q40,80 70,120 T130,120 T190,120" />
+        <path d="M10,140 Q40,100 70,140 T130,140 T190,140" />
+        <circle cx="100" cy="50" r="22" />
+        <circle cx="100" cy="50" r="14" />
+      </g>
+    </svg>
+  </div>
+
+  <div class="phone-stage">
+    <div class="phone-notch" aria-hidden="true">
+      <span class="phone-notch-cam"></span>
+    </div>
+    <div class="phone-screen">
+  <main class="container">
+    <header class="hero">
+      <div class="hero-vertical" aria-hidden="true">
+        <span>咔</span><span>嚓</span><span>劇</span><span>場</span>
+      </div>
+      <div class="hero-left">
+        <div class="hero-eyebrow">壹之卷 · 人相書</div>
+        <h1 class="hero-title">
+          <span class="hero-title-en">PHOTO&nbsp;REALM</span>
+          <span class="hero-title-cn">影域奉行所</span>
+        </h1>
+        <p class="hero-sub">咔嚓一張・友人即罪</p>
+        <div class="hero-meta">
+          <span>戊辰 · 春</span>
+          <span class="dot">·</span>
+          <span>奉行所掌印</span>
+        </div>
+      </div>
+    </header>
+
+    <section id="formSection" class="card">
+      <div class="card-corner tl"></div>
+      <div class="card-corner tr"></div>
+      <div class="card-corner bl"></div>
+      <div class="card-corner br"></div>
+
+      <form id="form">
+        <div class="setup-group form-setup-group">
+          <div class="setup-label"><span>風　格</span><i></i></div>
+          <div class="poster-style-grid">
+            <button type="button" class="chip poster-style-chip active" data-poster-style="prank">
+              <span class="chip-cn">整蛊風</span>
+              <span class="chip-hint">通緝令 · 朋友互怼</span>
+            </button>
+            <button type="button" class="chip poster-style-chip" data-poster-style="warm">
+              <span class="chip-cn">温暖之域</span>
+              <span class="chip-hint">治愈插画 · 慢日常</span>
+            </button>
+            <button type="button" class="chip poster-style-chip" data-poster-style="custom" disabled>
+              <span class="chip-cn">其他風格</span>
+              <span class="chip-hint">敬請期待</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="setup-group form-setup-group">
+          <div class="setup-label"><span>本　人　性　別</span><i></i></div>
+          <div class="setup-hint">这是「你自己（玩家「我」）」的性别，不是照片里的人</div>
+          <div class="gender-grid">
+            <button type="button" class="chip gender-chip" data-gender="m">
+              <span class="chip-cn">男</span>
+            </button>
+            <button type="button" class="chip gender-chip" data-gender="f">
+              <span class="chip-cn">女</span>
+            </button>
+            <button type="button" class="chip gender-chip active" data-gender="x">
+              <span class="chip-cn">保　密</span>
+            </button>
+          </div>
+        </div>
+
+        <label class="upload" id="uploadArea">
+          <input type="file" id="image" name="image" accept="image/*" required hidden />
+          <div class="upload-placeholder" id="uploadPlaceholder">
+            <svg class="upload-icon" viewBox="0 0 64 64" aria-hidden="true">
+              <rect x="6" y="14" width="52" height="40" rx="3" fill="none" stroke="currentColor" stroke-width="2"/>
+              <circle cx="32" cy="34" r="11" fill="none" stroke="currentColor" stroke-width="2"/>
+              <circle cx="32" cy="34" r="5" fill="currentColor"/>
+              <rect x="22" y="9" width="20" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <div class="upload-main">點此 / 拖入肖像</div>
+            <div class="upload-hint">奉行所推荐正面像 · JPG / PNG</div>
+          </div>
+          <img id="preview" alt="" hidden />
+        </label>
+
+        <div class="field">
+          <label for="name"><span class="field-cn">姓　名</span><span class="field-mark req">必</span></label>
+          <input type="text" id="name" name="name" maxlength="20" placeholder="例：張三" required />
+        </div>
+
+        <div class="field">
+          <label for="nickname"><span class="field-cn">綽　號</span><span class="field-mark opt">可省</span></label>
+          <input type="text" id="nickname" name="nickname" maxlength="20" placeholder="例：摸魚大王" />
+        </div>
+
+        <button type="submit" id="submitBtn">
+          <span class="btn-cn">立　案　通　緝</span>
+          <span class="btn-mark">緝</span>
+        </button>
+      </form>
+    </section>
+
+    <section id="loading" class="loading" hidden>
+      <div class="ink-drop">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="loading-text">奉行所畫師作畫中</div>
+      <div class="loading-sub">筆走龍蛇，約二十至六十秒</div>
+    </section>
+
+    <section id="resultSection" class="result" hidden>
+      <div class="poster" id="poster">
+        <!-- 四角装饰 -->
+        <div class="poster-corner tl"></div>
+        <div class="poster-corner tr"></div>
+        <div class="poster-corner bl"></div>
+        <div class="poster-corner br"></div>
+
+        <!-- 右侧竖排巨标题 -->
+        <div class="poster-vertical-title" aria-hidden="true">
+          <span>人</span><span>相</span><span>書</span>
+        </div>
+        <div class="poster-vertical-sub" aria-hidden="true">
+          <span>影</span><span>域</span><span>奉</span><span>行</span><span>所</span>
+        </div>
+
+        <div class="poster-header">
+          <div class="poster-en">WANTED</div>
+          <div class="poster-line"></div>
+          <div class="poster-zh">通　緝　状</div>
+        </div>
+
+        <div class="poster-photo">
+          <div class="photo-tape"></div>
+          <img id="posterImage" alt="人相肖像" />
+          <div class="photo-frame"></div>
+        </div>
+
+        <div class="poster-name-row">
+          <span class="name-zh" id="posterName"></span>
+          <span class="name-tag" id="posterNickname"></span>
+        </div>
+
+        <ul class="poster-fields">
+          <li>
+            <span class="k">罪　状</span>
+            <span class="v" id="posterCrime"></span>
+          </li>
+          <li>
+            <span class="k">危險之等</span>
+            <span class="v danger" id="posterLevel"></span>
+          </li>
+          <li>
+            <span class="k">懸　賞</span>
+            <span class="v bounty" id="posterBounty"></span>
+          </li>
+          <li>
+            <span class="k">當下狀</span>
+            <span class="v" id="posterStatus"></span>
+          </li>
+          <li>
+            <span class="k">處置之策</span>
+            <span class="v" id="posterSuggestion"></span>
+          </li>
+        </ul>
+
+        <!-- 朱印章 -->
+        <div class="seal seal-main">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <rect x="4" y="4" width="92" height="92" fill="none" stroke="currentColor" stroke-width="4"/>
+            <rect x="10" y="10" width="80" height="80" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <text x="28" y="38" font-family="Yuji Syuku, Ma Shan Zheng, serif" font-size="28" fill="currentColor">影</text>
+            <text x="55" y="38" font-family="Yuji Syuku, Ma Shan Zheng, serif" font-size="28" fill="currentColor">域</text>
+            <text x="28" y="74" font-family="Yuji Syuku, Ma Shan Zheng, serif" font-size="28" fill="currentColor">奉</text>
+            <text x="55" y="74" font-family="Yuji Syuku, Ma Shan Zheng, serif" font-size="28" fill="currentColor">行</text>
+          </svg>
+        </div>
+
+        <div class="seal seal-corner">
+          <svg viewBox="0 0 60 60" aria-hidden="true">
+            <circle cx="30" cy="30" r="26" fill="none" stroke="currentColor" stroke-width="3"/>
+            <text x="50%" y="58%" dominant-baseline="middle" text-anchor="middle" font-family="Yuji Syuku, serif" font-size="22" fill="currentColor">緝</text>
+          </svg>
+        </div>
+
+        <div class="poster-footer">
+          <span>戊　辰　年　春　月</span>
+          <span class="footer-dot">●</span>
+          <span>奉　行　所　謹　告</span>
+        </div>
+      </div>
+
+      <div class="actions actions-primary">
+        <button id="enterDreamBtn" class="enter-dream">
+          <span class="dream-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22">
+              <path d="M3 12 C 6 4, 18 4, 21 12 C 18 20, 6 20, 3 12 Z" fill="none" stroke="currentColor" stroke-width="1.8"/>
+              <circle cx="12" cy="12" r="4" fill="currentColor"/>
+            </svg>
+          </span>
+          <span class="btn-cn">進　入　照　片　中　的　平　行　世　界</span>
+          <span class="btn-mark">界</span>
+        </button>
+      </div>
+
+      <div class="actions">
+        <button id="downloadBtn">
+          <span class="btn-cn">收　藏　此　令</span>
+        </button>
+        <button id="restartBtn" class="secondary">
+          <span class="btn-cn">另　立　一　案</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         第二部分 · 入画剧情
+         ========================================================= -->
+
+    <!-- 选剧情 + 选画风 -->
+    <section id="storySetup" class="card story-setup" hidden>
+      <div class="card-corner tl"></div>
+      <div class="card-corner tr"></div>
+      <div class="card-corner bl"></div>
+      <div class="card-corner br"></div>
+
+      <header class="setup-head">
+        <div class="setup-eyebrow" id="setupEyebrow">貳之卷 · 影域副本</div>
+        <h2 class="setup-title" id="setupTitle">擇　戯　路</h2>
+        <p class="setup-sub" id="setupSub">挑一段故事，挑一种画风，把他/她拽进照片里</p>
+      </header>
+
+      <div class="setup-group">
+        <div class="setup-label"><span>剧&nbsp;情&nbsp;主&nbsp;题</span><i></i></div>
+        <div class="theme-grid" id="themeGrid">
+          <!-- 由 JS 按 posterStyle 动态渲染 -->
+        </div>
+      </div>
+
+      <div class="setup-group">
+        <div class="setup-label"><span>画&nbsp;风</span><i></i></div>
+        <div class="style-grid" id="styleGrid">
+          <!-- 由 JS 按 posterStyle 动态渲染 -->
+        </div>
+      </div>
+
+      <div class="setup-actions">
+        <button type="button" id="startStoryBtn">
+          <span class="btn-cn">咔　嚓　入　画</span>
+          <span class="btn-mark">咔</span>
+        </button>
+        <button type="button" id="backToPosterBtn" class="secondary">
+          <span class="btn-cn">回　看　通　緝</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 开场动画：手伸出去拍照 -->
+    <section id="storyOpening" class="opening-screen" hidden>
+      <div class="opening-bg"></div>
+      <div class="opening-stage">
+        <div class="opening-subject" id="openingSubject"></div>
+
+        <svg class="opening-hand" viewBox="0 0 200 240" aria-hidden="true">
+          <!-- 手腕 -->
+          <path d="M40 240 L40 170 Q40 150 60 145 L120 130 Q150 125 160 145 L165 160 Q170 170 160 178 L100 200 Q70 215 60 240 Z"
+                fill="#f0d4b0" stroke="#3d2e22" stroke-width="2.5"/>
+          <!-- 手机/相机 -->
+          <rect x="64" y="116" width="104" height="62" rx="8" fill="#1a1410" stroke="#3d2e22" stroke-width="2.5"/>
+          <rect x="74" y="124" width="84" height="46" rx="3" fill="#2c4a5e"/>
+          <circle cx="150" cy="132" r="4" fill="#c5302a"/>
+          <circle cx="116" cy="147" r="14" fill="none" stroke="#ecddb8" stroke-width="2"/>
+          <circle cx="116" cy="147" r="7" fill="#ecddb8"/>
+          <circle cx="116" cy="147" r="3" fill="#1a1410"/>
+        </svg>
+
+        <div class="flash" aria-hidden="true"></div>
+        <div class="kacha-text" aria-hidden="true">咔　嚓！</div>
+
+        <!-- 动画播完后浮起的等待层：图像生成期间 -->
+        <div class="opening-loader" id="openingLoader" hidden>
+          <div class="ink-drop"><span></span><span></span><span></span></div>
+          <div class="opening-loader-text">影　域　凝　聚　中</div>
+          <div class="opening-loader-sub" id="openingLoaderSub">画师正在落笔，约二十至六十秒</div>
+        </div>
+      </div>
+      <div class="opening-meta">
+        <span id="openingThemeLabel"></span>
+        <span class="dot">·</span>
+        <span id="openingStyleLabel"></span>
+      </div>
+    </section>
+
+    <!-- 单幕剧情 -->
+    <section id="storyScene" class="story-scene" hidden>
+      <div class="scene-meta">
+        <span class="scene-chapter" id="sceneChapter">第　壹　幕</span>
+        <span class="scene-dot">·</span>
+        <span class="scene-theme" id="sceneTheme"></span>
+      </div>
+
+      <div class="scene-panel" id="scenePanel">
+        <div class="panel-corner tl"></div>
+        <div class="panel-corner tr"></div>
+        <div class="panel-corner bl"></div>
+        <div class="panel-corner br"></div>
+        <div class="panel-img-wrap">
+          <img id="sceneImage" alt="剧情画面" />
+          <div class="panel-vignette" aria-hidden="true"></div>
+
+          <!-- 切幕 loader：覆盖整个面板图像区 -->
+          <div class="panel-loader" id="panelLoader" hidden>
+            <div class="ink-drop"><span></span><span></span><span></span></div>
+            <div class="panel-loader-text" id="panelLoaderText">畫師作畫中</div>
+            <div class="panel-loader-sub" id="panelLoaderSub">影像正在显影，约二十至六十秒</div>
+          </div>
+        </div>
+        <div class="panel-caption" id="sceneNarrative"></div>
+      </div>
+
+      <div class="choices" id="choices"></div>
+
+      <div class="scene-bar">
+        <div class="progress" id="storyProgress"></div>
+      </div>
+    </section>
+
+    <!-- 终幕 · 连环画 -->
+    <section id="storyFinale" class="story-finale" hidden>
+      <header class="finale-head">
+        <div class="finale-eyebrow" id="finaleEyebrow">叁之卷 · 連環畫</div>
+        <h2 class="finale-title">影　已　成　卷</h2>
+        <p class="finale-sub" id="finaleSub">收藏此卷，与友共阅</p>
+      </header>
+
+      <div class="comic-strip" id="comicStrip">
+        <!-- 由 JS 渲染 -->
+      </div>
+
+      <div class="actions actions-primary">
+        <button id="downloadComicBtn" class="enter-dream">
+          <span class="btn-cn">收　藏　連　環　畫</span>
+          <span class="btn-mark">藏</span>
+        </button>
+      </div>
+      <div class="actions">
+        <button id="replayStoryBtn">
+          <span class="btn-cn">再　入　一　次</span>
+        </button>
+        <button id="finaleResetBtn" class="secondary">
+          <span class="btn-cn">另　立　一　案</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 终幕 → 连环画之间的"出画"过渡 -->
+    <div id="wakeOverlay" class="wake-overlay" hidden>
+      <div class="wake-text" aria-hidden="true"><span>出</span><span>画</span></div>
+      <div class="wake-sub">影像收卷 · 连环画显影中</div>
+    </div>
+
+    <section id="errorBox" class="error" hidden>
+      <div class="err-title">畫師失手</div>
+      <pre id="errorDetail"></pre>
+      <button id="retryBtn" class="secondary">
+        <span class="btn-cn">回　頭　再　試</span>
+      </button>
+    </section>
+
+    <footer class="page-footer">
+      <span>影　域　奉　行　所</span>
+      <span class="ft-mid">·</span>
+      <span>戊　辰　戯　作</span>
+    </footer>
+  </main>
+    </div>
+    <div class="phone-home" aria-hidden="true"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
